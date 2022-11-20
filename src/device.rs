@@ -1,6 +1,6 @@
 use regex::Regex;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct MacAddress(String);
 
 impl TryFrom<&str> for MacAddress {
@@ -29,6 +29,7 @@ impl std::fmt::Display for MacAddress {
     }
 }
 
+#[derive(Clone)]
 pub struct Device {
     pub name: String,
     pub mac: MacAddress,

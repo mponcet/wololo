@@ -21,12 +21,12 @@ impl DeviceRepository for InMemoryDeviceRepository {
         }
     }
 
-    fn fetch_by_name(&self, name: &str) -> Option<&Device> {
-        self.devices.iter().find(|d| d.name == name)
+    fn fetch_by_name(&self, name: &str) -> Option<Device> {
+        self.devices.iter().find(|d| d.name == name).cloned()
     }
 
-    fn fetch_by_mac(&self, mac: MacAddress) -> Option<&Device> {
-        self.devices.iter().find(|d| d.mac == mac)
+    fn fetch_by_mac(&self, mac: &MacAddress) -> Option<Device> {
+        self.devices.iter().find(|d| d.mac == *mac).cloned()
     }
 
     fn delete(&mut self, name: &str) -> Result<(), DeleteError> {
@@ -44,11 +44,11 @@ impl DeviceRepository for InMemoryDeviceRepository {
         result
     }
 
-    fn fetch_all(&self) -> Option<&[Device]> {
+    fn fetch_all(&self) -> Option<Vec<Device>> {
         if self.devices.is_empty() {
             None
         } else {
-            Some(self.devices.as_slice())
+            Some(self.devices.clone())
         }
     }
 }
