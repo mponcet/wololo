@@ -1,3 +1,4 @@
+pub mod file;
 pub mod inmemory;
 
 use crate::device::{Device, MacAddress};

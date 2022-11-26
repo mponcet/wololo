@@ -15,6 +15,14 @@ impl InMemoryDeviceRepository {
     }
 }
 
+impl From<Vec<Device>> for InMemoryDeviceRepository {
+    fn from(devices: Vec<Device>) -> Self {
+        Self {
+            devices: RefCell::new(devices),
+        }
+    }
+}
+
 impl DeviceRepository for InMemoryDeviceRepository {
     fn insert(&self, device: Device) -> Result<(), InsertError> {
         if self.devices.borrow().iter().any(|d| d.name == device.name) {

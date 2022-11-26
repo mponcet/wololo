@@ -14,7 +14,7 @@ pub fn wake_device(mac: &str) {
     }
 }
 
-pub fn add_device(repo: &mut impl DeviceRepository, name: &str, mac: &str) {
+pub fn add_device(repo: &dyn DeviceRepository, name: &str, mac: &str) {
     match Device::new(name, mac) {
         Ok(device) => match repo.insert(device) {
             Err(InsertError::Conflict) => eprintln!("Name or mac address already exists"),
@@ -24,14 +24,14 @@ pub fn add_device(repo: &mut impl DeviceRepository, name: &str, mac: &str) {
     }
 }
 
-pub fn delete_device(repo: &mut impl DeviceRepository, name: &str) {
+pub fn delete_device(repo: &dyn DeviceRepository, name: &str) {
     match repo.delete(name) {
         Ok(_) => println!("Device {} deleted", name),
         Err(DeleteError::NotFound) => eprintln!("Device not found"),
     }
 }
 
-pub fn show_devices(repo: &impl DeviceRepository) {
+pub fn show_devices(repo: &dyn DeviceRepository) {
     if let Some(devices) = repo.fetch_all() {
         for device in devices {
             println!("Device {} has mac address {}", device.name, device.mac);

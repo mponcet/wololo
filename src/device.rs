@@ -1,6 +1,7 @@
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Deserialize, Serialize)]
 pub struct MacAddress(String);
 
 impl TryFrom<&str> for MacAddress {
@@ -29,7 +30,7 @@ impl std::fmt::Display for MacAddress {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Device {
     pub name: String,
     pub mac: MacAddress,
