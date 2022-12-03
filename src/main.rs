@@ -2,7 +2,7 @@ extern crate serde;
 
 use clap::{arg, command, Command};
 
-use crate::repository::DeviceRepository;
+use crate::repository::SharedDeviceRepository;
 use crate::repository::{file::FileRepository, inmemory::InMemoryDeviceRepository};
 
 mod cli;
@@ -57,16 +57,16 @@ fn main() {
     }
 }
 
-fn build_repository(kind: &str) -> Result<Box<dyn DeviceRepository>, ()> {
+fn build_repository(kind: &str) -> Result<SharedDeviceRepository, ()> {
     match kind {
-        "file" => match FileRepository::try_new("devices.yml") {
-            Ok(repo) => Ok(Box::new(repo)),
+        "file" => match FileRepository::try_new_shared("devices.yml") {
+            Ok(repo) => Ok(repo),
             Err(_) => {
                 eprintln!("failed to create file repository");
                 Err(())
             }
         },
-        "memory" => Ok(Box::new(InMemoryDeviceRepository::new())),
+        "memory" => Ok(InMemoryDeviceRepository::new_shared()),
         _ => unreachable!(),
     }
 }

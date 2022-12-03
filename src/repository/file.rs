@@ -1,14 +1,16 @@
+use std::io::Write;
 use std::{
     path::{Path, PathBuf},
-    result::Result,
+    sync::Arc,
 };
-
-use std::io::Write;
 use tempfile::NamedTempFile;
 
 use crate::{
     device::{Device, MacAddress},
-    repository::{inmemory::InMemoryDeviceRepository, DeleteError, DeviceRepository, InsertError},
+    repository::{
+        inmemory::InMemoryDeviceRepository, DeleteError, DeviceRepository, InsertError,
+        SharedDeviceRepository,
+    },
 };
 
 #[derive(Debug)]
@@ -34,10 +36,19 @@ impl FileRepository {
         })
     }
 
+    pub fn try_new_shared<P: AsRef<Path>>(
+        path: P,
+    ) -> Result<SharedDeviceRepository, FileRepositoryError> {
+        Ok(Arc::new(Self::try_new(path)?))
+    }
+
     fn flush(&self) -> Result<(), std::io::Error> {
         let mut tmpfile = NamedTempFile::new_in(".")?;
-        let yaml = serde_yaml::to_string(&self.inmemory.fetch_all()).unwrap();
-        writeln!(tmpfile, "{}", yaml)?;
+
+        if let Some(devices) = self.inmemory.fetch_all() {
+            writeln!(tmpfile, "{}", serde_yaml::to_string(&devices).unwrap())?;
+        }
+
         tmpfile.into_temp_path().persist(&self.path)?;
 
         Ok(())
@@ -46,13 +57,19 @@ impl FileRepository {
 
 impl DeviceRepository for FileRepository {
     fn insert(&self, device: Device) -> Result<(), InsertError> {
+        // TODO: lacks multi repository transaction :'(
+        // Or don't care about lost updates ?
         self.inmemory
             .insert(device)
             .map(|_| self.flush().expect("writeback failed"))
     }
 
     fn delete(&self, name: &str) -> Result<(), DeleteError> {
-        self.inmemory.delete(name)
+        // TODO: lacks multi repository transaction :'(
+        // Or don't care about lost updates ?
+        self.inmemory
+            .delete(name)
+            .map(|_| self.flush().expect("writeback failed"))
     }
 
     fn fetch_by_name(&self, name: &str) -> Option<Device> {

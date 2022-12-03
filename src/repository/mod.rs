@@ -1,6 +1,8 @@
 pub mod file;
 pub mod inmemory;
 
+use std::sync::Arc;
+
 use crate::device::{Device, MacAddress};
 
 pub enum InsertError {
@@ -18,3 +20,5 @@ pub trait DeviceRepository {
     fn fetch_by_mac(&self, mac: &MacAddress) -> Option<Device>;
     fn fetch_all(&self) -> Option<Vec<Device>>;
 }
+
+pub type SharedDeviceRepository = Arc<dyn DeviceRepository + Send + Sync>;
