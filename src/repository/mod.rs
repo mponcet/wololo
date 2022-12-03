@@ -7,10 +7,12 @@ use crate::device::{Device, MacAddress};
 
 pub enum InsertError {
     Conflict,
+    Other,
 }
 
 pub enum DeleteError {
     NotFound,
+    Other,
 }
 
 pub trait DeviceRepository {

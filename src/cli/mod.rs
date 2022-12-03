@@ -17,8 +17,9 @@ pub fn wake_device(mac: &str) {
 pub fn add_device(repo: &dyn DeviceRepository, name: &str, mac: &str) {
     match Device::new(name, mac) {
         Ok(device) => match repo.insert(device) {
+            Ok(_) => println!("Device ({}, {}) added", name, mac),
             Err(InsertError::Conflict) => eprintln!("Name or mac address already exists"),
-            _ => println!("Device ({}, {}) added", name, mac),
+            Err(_) => (),
         },
         Err(_) => eprintln!("Wrong device name or mac address format"),
     }
@@ -28,6 +29,7 @@ pub fn delete_device(repo: &dyn DeviceRepository, name: &str) {
     match repo.delete(name) {
         Ok(_) => println!("Device {} deleted", name),
         Err(DeleteError::NotFound) => eprintln!("Device not found"),
+        Err(_) => (),
     }
 }
 
