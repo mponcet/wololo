@@ -39,10 +39,10 @@ impl FileRepository {
         Ok(Arc::new(Self::try_new(path)?))
     }
 
-    fn flush(&self) -> Result<(), std::io::Error> {
+    fn flush<P: AsRef<Path>>(path: P, devices: &[Device]) -> Result<(), std::io::Error> {
         let mut tmpfile = NamedTempFile::new_in(".")?;
-        writeln!(tmpfile, "{}", serde_yaml::to_string(&self.devices).unwrap())?;
-        tmpfile.into_temp_path().persist(self.path.as_path())?;
+        writeln!(tmpfile, "{}", serde_yaml::to_string(devices).unwrap())?;
+        tmpfile.into_temp_path().persist(path)?;
 
         Ok(())
     }
@@ -56,9 +56,9 @@ impl DeviceRepository for FileRepository {
             Err(InsertError::Conflict)
         } else {
             devices.push(device);
-            if let Err(err) = self.flush() {
-                devices.pop();
+            if let Err(err) = FileRepository::flush(&self.path, &devices) {
                 eprintln!("writeback failed: {}", err);
+                devices.pop();
                 return Err(InsertError::Other);
             }
             Ok(())
@@ -72,9 +72,9 @@ impl DeviceRepository for FileRepository {
             let deleted = devices[index].clone();
             devices.remove(index);
 
-            if let Err(err) = self.flush() {
-                devices.push(deleted);
+            if let Err(err) = FileRepository::flush(&self.path, &devices) {
                 eprintln!("writeback failed: {}", err);
+                devices.push(deleted);
                 return Err(DeleteError::Other);
             }
             Ok(())
