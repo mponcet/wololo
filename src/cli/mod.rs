@@ -15,7 +15,7 @@ pub fn wake_device(mac: &str) {
 }
 
 pub fn add_device(repo: &dyn DeviceRepository, name: &str, mac: &str) {
-    match Device::new(name, mac) {
+    match Device::try_from((name, mac)) {
         Ok(device) => match repo.insert(device) {
             Ok(_) => println!("Device ({}, {}) added", name, mac),
             Err(InsertError::Conflict) => eprintln!("Name or mac address already exists"),

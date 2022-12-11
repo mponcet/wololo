@@ -36,11 +36,13 @@ pub struct Device {
     pub mac: MacAddress,
 }
 
-impl Device {
-    pub fn new(name: &str, mac: &str) -> Result<Self, ()> {
+impl TryFrom<(&str, &str)> for Device {
+    type Error = ();
+
+    fn try_from(name_mac: (&str, &str)) -> Result<Self, Self::Error> {
         Ok(Self {
-            name: name.to_owned(),
-            mac: MacAddress::try_from(mac)?,
+            name: name_mac.0.to_owned(),
+            mac: MacAddress::try_from(name_mac.1)?,
         })
     }
 }
