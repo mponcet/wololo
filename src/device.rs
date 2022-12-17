@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct MacAddress(String);
 
 impl TryFrom<&str> for MacAddress {
-    type Error = ();
+    type Error = String;
 
     fn try_from(mac: &str) -> Result<Self, Self::Error> {
         let re = Regex::new(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$").unwrap();
@@ -13,7 +13,7 @@ impl TryFrom<&str> for MacAddress {
         if re.is_match(mac) {
             Ok(Self(mac.to_owned()))
         } else {
-            Err(())
+            Err(format!("{} is not a valid mac address", mac))
         }
     }
 }
@@ -37,7 +37,7 @@ pub struct Device {
 }
 
 impl TryFrom<(&str, &str)> for Device {
-    type Error = ();
+    type Error = String;
 
     fn try_from(name_mac: (&str, &str)) -> Result<Self, Self::Error> {
         Ok(Self {

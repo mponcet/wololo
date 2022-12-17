@@ -1,6 +1,6 @@
 use crate::{
     device::{Device, MacAddress},
-    repository::{DeleteError, DeviceRepository, InsertError},
+    repository::DeviceRepository,
     wol,
 };
 
@@ -8,9 +8,9 @@ pub fn wake_device(mac: &str) {
     match MacAddress::try_from(mac) {
         Ok(mac) => match wol::wake(&mac) {
             Ok(_) => println!("Magic packet sent successfully"),
-            Err(_) => eprintln!("Wake on lan failed"),
+            Err(e) => eprintln!("{}", e),
         },
-        Err(_) => eprintln!("Wrong mac address format"),
+        Err(e) => eprintln!("{}", e),
     }
 }
 
@@ -18,18 +18,16 @@ pub fn add_device(repo: &dyn DeviceRepository, name: &str, mac: &str) {
     match Device::try_from((name, mac)) {
         Ok(device) => match repo.insert(device) {
             Ok(_) => println!("Device ({}, {}) added", name, mac),
-            Err(InsertError::Conflict) => eprintln!("Name or mac address already exists"),
-            Err(_) => (),
+            Err(e) => eprintln!("{}", e),
         },
-        Err(_) => eprintln!("Wrong device name or mac address format"),
+        Err(e) => eprintln!("{}", e),
     }
 }
 
 pub fn delete_device(repo: &dyn DeviceRepository, name: &str) {
     match repo.delete(name) {
         Ok(_) => println!("Device {} deleted", name),
-        Err(DeleteError::NotFound) => eprintln!("Device not found"),
-        Err(_) => (),
+        Err(e) => eprintln!("{}", e),
     }
 }
 

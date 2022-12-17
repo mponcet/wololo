@@ -1,8 +1,15 @@
 use crate::device::MacAddress;
 
-#[derive(Debug)]
 pub enum WakeError {
     Io,
+}
+
+impl std::fmt::Display for WakeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WakeError::Io => write!(f, "IO error while sending magic packet"),
+        }
+    }
 }
 
 pub fn wake(mac: &MacAddress) -> Result<(), WakeError> {

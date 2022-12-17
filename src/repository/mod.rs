@@ -15,6 +15,24 @@ pub enum DeleteError {
     Other,
 }
 
+impl std::fmt::Display for InsertError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InsertError::Conflict => write!(f, "Device already exists in repository"),
+            InsertError::Other => write!(f, "Unknown error while adding device to repository"),
+        }
+    }
+}
+
+impl std::fmt::Display for DeleteError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DeleteError::NotFound => write!(f, "Device not found in repository"),
+            DeleteError::Other => write!(f, "Unknown error while deleting device from repository"),
+        }
+    }
+}
+
 pub trait DeviceRepository {
     fn insert(&self, device: Device) -> Result<(), InsertError>;
     fn delete(&self, name: &str) -> Result<(), DeleteError>;
