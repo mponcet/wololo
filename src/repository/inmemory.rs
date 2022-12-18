@@ -1,6 +1,9 @@
 use std::sync::{Arc, Mutex};
 
-use crate::repository::{DeleteError, DeviceRepository, InsertError};
+use crate::{
+    device::DeviceName,
+    repository::{DeleteError, DeviceRepository, InsertError},
+};
 use crate::{
     device::{Device, MacAddress},
     repository::SharedDeviceRepository,
@@ -46,12 +49,12 @@ impl DeviceRepository for InMemoryDeviceRepository {
         }
     }
 
-    fn fetch_by_name(&self, name: &str) -> Option<Device> {
+    fn fetch_by_name(&self, name: &DeviceName) -> Option<Device> {
         self.devices
             .lock()
             .expect("lock")
             .iter()
-            .find(|d| d.name == name)
+            .find(|d| d.name == *name)
             .cloned()
     }
 
@@ -64,11 +67,11 @@ impl DeviceRepository for InMemoryDeviceRepository {
             .cloned()
     }
 
-    fn delete(&self, name: &str) -> Result<(), DeleteError> {
+    fn delete(&self, name: &DeviceName) -> Result<(), DeleteError> {
         let mut result = Err(DeleteError::NotFound);
 
         self.devices.lock().expect("lock").retain(|d| {
-            if d.name == name {
+            if d.name == *name {
                 result = Ok(());
                 false
             } else {

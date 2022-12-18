@@ -6,7 +6,7 @@ use std::{
 use tempfile::NamedTempFile;
 
 use crate::{
-    device::{Device, MacAddress},
+    device::{Device, DeviceName, MacAddress},
     repository::{DeleteError, DeviceRepository, InsertError, SharedDeviceRepository},
 };
 
@@ -65,10 +65,10 @@ impl DeviceRepository for FileRepository {
         }
     }
 
-    fn delete(&self, name: &str) -> Result<(), DeleteError> {
+    fn delete(&self, name: &DeviceName) -> Result<(), DeleteError> {
         let mut devices = self.devices.lock().expect("lock");
 
-        if let Some(index) = devices.iter().position(|d| d.name == name) {
+        if let Some(index) = devices.iter().position(|d| d.name == *name) {
             let deleted = devices[index].clone();
             devices.remove(index);
 
@@ -83,12 +83,12 @@ impl DeviceRepository for FileRepository {
         }
     }
 
-    fn fetch_by_name(&self, name: &str) -> Option<Device> {
+    fn fetch_by_name(&self, name: &DeviceName) -> Option<Device> {
         self.devices
             .lock()
             .expect("lock")
             .iter()
-            .find(|d| d.name == name)
+            .find(|d| d.name == *name)
             .cloned()
     }
 

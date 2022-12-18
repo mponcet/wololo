@@ -1,5 +1,5 @@
 use crate::{
-    device::{Device, MacAddress},
+    device::{Device, DeviceName, MacAddress},
     repository::DeviceRepository,
     wol,
 };
@@ -25,8 +25,11 @@ pub fn add_device(repo: &dyn DeviceRepository, name: &str, mac: &str) {
 }
 
 pub fn delete_device(repo: &dyn DeviceRepository, name: &str) {
-    match repo.delete(name) {
-        Ok(_) => println!("Device {} deleted", name),
+    match DeviceName::try_from(name) {
+        Ok(name) => match repo.delete(&name) {
+            Ok(_) => println!("Device {} deleted", name),
+            Err(e) => eprintln!("{}", e),
+        },
         Err(e) => eprintln!("{}", e),
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    device::{Device, MacAddress},
+    device::{Device, DeviceName, MacAddress},
     repository::SharedDeviceRepository,
     service::WakeOnLanService,
     wol,
@@ -50,24 +50,29 @@ impl SlackWolService {
                     },
                     Err(e) => format!("Failed to parse device name and/or mac address ({})", e),
                 },
-                (Some(&"del"), Some(&name), None) => match repo.delete(name) {
-                    Ok(_) => format!("Device {} deleted", name),
-                    Err(e) => format!("Couldn't delete device {} ({})", name, e),
-                },
+                (Some(&"del"), Some(&name), None) => DeviceName::try_from(name).map_or_else(
+                    |e| e,
+                    |ref name| match repo.delete(name) {
+                        Ok(_) => format!("Device {} deleted", name),
+                        Err(e) => format!("Couldn't delete device {} ({})", name, e),
+                    },
+                ),
                 (Some(&"wake"), Some(&name_or_mac), None) => {
                     if let Ok(ref mac) = MacAddress::try_from(name_or_mac) {
                         wol::wake(mac).map_or_else(
                             |e| format!("Couldn't send magic packet ({})", e),
                             |_| format!("Magic packet sent to {}", mac),
                         )
-                    } else {
-                        match repo.fetch_by_name(name_or_mac) {
+                    } else if let Ok(ref name) = DeviceName::try_from(name_or_mac) {
+                        match repo.fetch_by_name(name) {
                             Some(device) => wol::wake(&device.mac).map_or_else(
                                 |e| format!("Couldn't send magic packet ({})", e),
                                 |_| format!("Magic packet sent to {}", device.mac),
                             ),
                             None => format!("Could't find device {}", name_or_mac),
                         }
+                    } else {
+                        format!("{} is not a valid name or mac address", name_or_mac)
                     }
                 }
                 _ => WOLOLO_HELP.to_owned(),
