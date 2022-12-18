@@ -9,7 +9,7 @@ use slack_morphism::prelude::*;
 use std::sync::Arc;
 use tokio;
 
-const WOLOLO_COMMANND: &str = "/wololo";
+const WOLOLO_COMMAND: &str = "/wololo";
 const WOLOLO_HELP: &str = "help:
  /wololo add NAME MAC
  /wololo del NAME
@@ -33,7 +33,7 @@ impl SlackWolService {
     ) -> Result<SlackCommandEventResponse, Box<dyn std::error::Error + Send + Sync>> {
         println!("{:#?}", event);
 
-        if event.command.as_ref() != WOLOLO_COMMANND {
+        if event.command.as_ref() != WOLOLO_COMMAND {
             return Err("Unexpected command".into());
         }
 
