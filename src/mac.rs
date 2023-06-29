@@ -1,10 +1,10 @@
 use serde::Deserialize;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq)]
 #[serde(try_from = "&str")]
 pub struct MacAddress([u8; 6]);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum MacAddressError {
     Length,
     Format,
@@ -65,5 +65,25 @@ impl TryFrom<&str> for MacAddress {
 impl MacAddress {
     pub fn as_bytes(&self) -> [u8; 6] {
         self.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_macaddress() {
+        assert_eq!(MacAddress::try_from(""), Err(MacAddressError::Length));
+        assert_eq!(
+            MacAddress::try_from("01/02/03/04/05/06"),
+            Err(MacAddressError::Separator)
+        );
+        assert_eq!(
+            MacAddress::try_from("01:02:03:04:05:0g"),
+            Err(MacAddressError::Format)
+        );
+
+        assert!(MacAddress::try_from("01:02:03:04:05:06").is_ok());
     }
 }
