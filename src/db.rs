@@ -41,7 +41,7 @@ impl From<std::io::Error> for DbError {
 
 impl Db {
     pub fn with_file<P: AsRef<Path>>(path: P) -> Result<Self, DbError> {
-        let raw_yaml = std::fs::read_to_string(path.as_ref())?;
+        let raw_yaml = std::fs::read_to_string(path)?;
         let devices_by_user =
             serde_yaml::from_str(&raw_yaml).map_err(|_| DbError::DeserializeError)?;
 
