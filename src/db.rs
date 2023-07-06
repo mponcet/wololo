@@ -9,6 +9,8 @@ pub struct Db {
     devices_by_user: HashMap<SlackUserId, MacAddress>,
 }
 
+pub type SharedDb = std::sync::Arc<Db>;
+
 #[derive(Debug)]
 pub enum DbError {
     IoError(std::io::Error),

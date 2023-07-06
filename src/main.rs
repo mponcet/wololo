@@ -1,20 +1,21 @@
 mod db;
 mod mac;
+mod slack_bot;
 mod wol;
+
+use std::sync::Arc;
 
 use crate::db::Db;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
 
-    if args.len() != 3 {
-        println!("{} <file> <slack_user_id>", args[0]);
+    if args.len() != 2 {
+        println!("{} <db>", args[0]);
     } else {
-        let db = Db::with_file(&args[1])?;
-        if let Some(mac) = db.get_mac_by_slack_user_id(&args[2]) {
-            println!("Waking {} with mac {}", &args[2], mac);
-            wol::send_wol(mac);
-        }
+        let db = Arc::new(Db::with_file(&args[1])?);
+        let bot = slack_bot::SlackBot::new(db);
+        let _ = bot.start();
     }
 
     Ok(())
