@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::Arc;
 
 use crate::mac::MacAddress;
 
@@ -42,12 +43,16 @@ impl From<std::io::Error> for DbError {
 }
 
 impl Db {
-    pub fn with_file<P: AsRef<Path>>(path: P) -> Result<Self, DbError> {
+    pub fn try_new<P: AsRef<Path>>(path: P) -> Result<Self, DbError> {
         let raw_yaml = std::fs::read_to_string(path)?;
         let devices_by_user =
             serde_yaml::from_str(&raw_yaml).map_err(|_| DbError::DeserializeError)?;
 
         Ok(Self { devices_by_user })
+    }
+
+    pub fn try_new_shared<P: AsRef<Path>>(path: P) -> Result<SharedDb, DbError> {
+        Ok(Arc::new(Self::try_new(path)?))
     }
 
     pub fn get_mac_by_slack_user_id(&self, slack_user_id: &SlackUserId) -> Option<&MacAddress> {
