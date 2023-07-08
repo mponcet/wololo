@@ -59,16 +59,20 @@ impl SlackBot {
         let storage = user_state.read().await;
         let db = &storage.get_user_state::<UserState>().unwrap().db;
 
-        if let Some(mac) = db.get_mac_by_slack_user_id(&slack_user_id.0) {
-            wol::send_wol(mac);
-            Ok(SlackCommandEventResponse::new(
-                SlackMessageContent::new().with_text(format!("wololo {}", mac)),
-            ))
-        } else {
-            Ok(SlackCommandEventResponse::new(
-                SlackMessageContent::new().with_text("nope".to_string()),
-            ))
-        }
+        let bot_answer = match db.get_mac_by_slack_user_id(&slack_user_id.0) {
+            Some(mac) => {
+                if wol::send_wol(mac).is_ok() {
+                    format!("Magic packet sent to {mac}")
+                } else {
+                    "Error while sending magic packet".to_string()
+                }
+            }
+            None => "User not found".to_string(),
+        };
+
+        Ok(SlackCommandEventResponse::new(
+            SlackMessageContent::new().with_text(bot_answer),
+        ))
     }
 
     pub fn start(&self) -> Result<(), SlackBotError> {
