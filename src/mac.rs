@@ -15,13 +15,16 @@ impl std::fmt::Display for MacAddressError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
             MacAddressError::Length => {
-                write!(f, "Invalid mac address length")
+                write!(f, "Error: invalid mac address length")
             }
             MacAddressError::Format => {
-                write!(f, "Invalid mac address format")
+                write!(f, "Error: invalid mac address format")
             }
             MacAddressError::Separator => {
-                write!(f, "Invalid mac address separator (should be ':' or '-')")
+                write!(
+                    f,
+                    "Error: invalid mac address separator (should be ':' or '-')"
+                )
             }
         }
     }

@@ -17,16 +17,23 @@ impl std::fmt::Display for SlackBotError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SlackBotError::AppTokenMissing => {
-                write!(f, "Environment variable SLACK_APP_TOKEN missing")
+                write!(f, "Error: environment variable SLACK_APP_TOKEN missing")
             }
             SlackBotError::SlackClientError(e) => {
-                write!(f, "Slack client error: {}", e)
+                write!(f, "Error: {}", e)
             }
         }
     }
 }
 
-impl std::error::Error for SlackBotError {}
+impl std::error::Error for SlackBotError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match *self {
+            SlackBotError::AppTokenMissing => None,
+            SlackBotError::SlackClientError(ref e) => Some(e),
+        }
+    }
+}
 
 impl From<std::env::VarError> for SlackBotError {
     fn from(_: std::env::VarError) -> Self {

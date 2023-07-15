@@ -5,7 +5,7 @@ mod wol;
 
 use crate::db::Db;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
 
     if args.len() != 2 {
@@ -13,8 +13,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         let db = Db::try_new_shared(&args[1])?;
         let bot = slack_bot::SlackBot::new(db);
-        let _ = bot.start();
+        bot.start()?;
     }
 
     Ok(())
+}
+
+fn main() {
+    if let Err(e) = run() {
+        eprintln!("{}", e);
+    }
 }
