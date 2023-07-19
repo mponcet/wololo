@@ -20,6 +20,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() {
+    println!("toto");
     if let Err(e) = run() {
         eprintln!("{}", e);
     }
