@@ -1,4 +1,4 @@
-name: Docker
+name: Docker build and push
 
 on:
   push:
@@ -8,14 +8,19 @@ on:
   pull_request:
     branches: [ "master" ]
 
+  workflow_run:
+    workflows: ["Rust build and test"]
+    branches: [master]
+    types:
+      - completed
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
-
 jobs:
   build:
-
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
