@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { version = "1.0.164", features = ["derive"] }
-serde_yaml = "0.9.22"
-slack-morphism = { version = "1.12.0", features = ["hyper"] }
-tokio = "1.29.1"
+serde = { version = "1.0.190", features = ["derive"] }
+serde_yaml = "0.9.27"
+slack-morphism = { version = "1.15.1", features = ["hyper"] }
+tokio = "1.33.0"
 wol-rs = "1.0.1"
