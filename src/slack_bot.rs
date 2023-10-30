@@ -114,8 +114,4 @@ impl SlackBot {
             Ok(())
         })
     }
-
-    fn stop(&self) {
-        todo!()
-    }
 }
