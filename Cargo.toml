@@ -9,5 +9,5 @@ edition = "2021"
 serde = { version = "1.0.190", features = ["derive"] }
 serde_yaml = "0.9.27"
 slack-morphism = { version = "1.15.1", features = ["hyper"] }
-tokio = "1.33.0"
+tokio = { version = "1.33.0", features = ["full"] }
 wol-rs = "1.0.1"

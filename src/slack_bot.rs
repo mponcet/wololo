@@ -68,7 +68,7 @@ impl SlackBot {
 
         let bot_answer = match db.get_mac_by_slack_user_id(&slack_user_id.0) {
             Some(mac) => {
-                if wol::send_wol(mac).is_ok() {
+                if wol::send_wol(mac).await.is_ok() {
                     format!("Magic packet sent to {mac}")
                 } else {
                     "Error while sending magic packet".to_string()
@@ -82,36 +82,30 @@ impl SlackBot {
         ))
     }
 
-    pub fn start(&self) -> Result<(), SlackBotError> {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
+    pub async fn start(&self) -> Result<(), SlackBotError> {
         let app_token_value: SlackApiTokenValue = std::env::var("SLACK_APP_TOKEN")?.into();
         let app_token = SlackApiToken::new(app_token_value);
 
-        runtime.block_on(async {
-            let client = SlackClient::new(SlackClientHyperConnector::new());
+        let client = SlackClient::new(SlackClientHyperConnector::new());
 
-            let socket_mode_callbacks = SlackSocketModeListenerCallbacks::new()
-                .with_command_events(SlackBot::command_events);
+        let socket_mode_callbacks =
+            SlackSocketModeListenerCallbacks::new().with_command_events(SlackBot::command_events);
 
-            let listener_environment = SlackClientEventsListenerEnvironment::new(Arc::new(client))
-                .with_user_state(UserState {
-                    db: self.db.clone(),
-                });
+        let listener_environment = SlackClientEventsListenerEnvironment::new(Arc::new(client))
+            .with_user_state(UserState {
+                db: self.db.clone(),
+            });
 
-            let socket_mode_listener = SlackClientSocketModeListener::new(
-                &SlackClientSocketModeConfig::new(),
-                Arc::new(listener_environment),
-                socket_mode_callbacks,
-            );
+        let socket_mode_listener = SlackClientSocketModeListener::new(
+            &SlackClientSocketModeConfig::new(),
+            Arc::new(listener_environment),
+            socket_mode_callbacks,
+        );
 
-            socket_mode_listener.listen_for(&app_token).await?;
+        socket_mode_listener.listen_for(&app_token).await?;
 
-            socket_mode_listener.serve().await;
+        socket_mode_listener.serve().await;
 
-            Ok(())
-        })
+        Ok(())
     }
 }
