@@ -1,3 +1,4 @@
+use core::fmt;
 use slack_morphism::prelude::*;
 use std::sync::Arc;
 use std::time::Duration;
@@ -56,6 +57,30 @@ struct UserState {
     db: SharedDb,
 }
 
+enum BotResponse {
+    MagicPacketSent,
+    MagicPacketError,
+    UserNotFound,
+    HostUp,
+    HostDown,
+}
+
+impl std::fmt::Display for BotResponse {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                BotResponse::MagicPacketSent => "Magic packet sent.",
+                BotResponse::MagicPacketError => "Error while sending magic packet.",
+                BotResponse::UserNotFound => "User not found.",
+                BotResponse::HostUp => "Host is up !",
+                BotResponse::HostDown => "Host is down :'(",
+            }
+        )
+    }
+}
+
 impl SlackBot {
     pub fn new(db: SharedDb) -> Self {
         Self { db }
@@ -72,58 +97,57 @@ impl SlackBot {
 
         let device = db.get_device_by_slack_user_id(&slack_user_id.0);
 
-        let mut bot_answer = String::new();
-
-        match device {
+        let bot_answer = match device {
             Some(device) => {
-                if wol::send_wol(&device.mac).await.is_ok() {
-                    bot_answer.push_str(format!("Magic packet sent to {}", device.mac).as_str());
+                match wol::send_wol(&device.mac).await {
+                    Ok(_) => {
+                        if let Some(tcp_check_addr) = device.tcp_check_addr.clone() {
+                            tokio::spawn(async move {
+                                let mut retries = 0;
+                                while retries < RETRY_TCP_CHECK {
+                                    // wait for computer to start
+                                    tokio::time::sleep(Duration::from_secs(5)).await;
 
-                    if let Some(tcp_check_addr) = device.tcp_check_addr.clone() {
-                        tokio::spawn(async move {
-                            let mut retries = 0;
-                            while retries < RETRY_TCP_CHECK {
-                                // wait for computer to start
-                                tokio::time::sleep(Duration::from_secs(5)).await;
+                                    if TcpStream::connect(&tcp_check_addr).await.is_ok() {
+                                        let _ = client
+                                            .respond_to_event(
+                                                &event.response_url,
+                                                &SlackApiPostWebhookMessageRequest::new(
+                                                    SlackMessageContent::new()
+                                                        .with_text(BotResponse::HostUp.to_string()),
+                                                ),
+                                            )
+                                            .await;
+                                        break;
+                                    }
 
-                                if TcpStream::connect(&tcp_check_addr).await.is_ok() {
+                                    retries += 1;
+                                }
+
+                                if retries == RETRY_TCP_CHECK {
                                     let _ = client
                                         .respond_to_event(
                                             &event.response_url,
                                             &SlackApiPostWebhookMessageRequest::new(
                                                 SlackMessageContent::new()
-                                                    .with_text("Host is up !".to_owned()),
+                                                    .with_text(BotResponse::HostDown.to_string()),
                                             ),
                                         )
                                         .await;
-                                    break;
                                 }
+                            });
+                        }
 
-                                retries += 1;
-                            }
-
-                            if retries == RETRY_TCP_CHECK {
-                                let _ = client
-                                    .respond_to_event(
-                                        &event.response_url,
-                                        &SlackApiPostWebhookMessageRequest::new(
-                                            SlackMessageContent::new()
-                                                .with_text("Host is still down :'(".to_owned()),
-                                        ),
-                                    )
-                                    .await;
-                            }
-                        });
+                        BotResponse::MagicPacketSent
                     }
-                } else {
-                    bot_answer.push_str("Error while sending magic packet");
-                };
+                    Err(_) => BotResponse::MagicPacketError,
+                }
             }
-            None => bot_answer.push_str("User not found"),
-        }
+            None => BotResponse::UserNotFound,
+        };
 
         Ok(SlackCommandEventResponse::new(
-            SlackMessageContent::new().with_text(bot_answer),
+            SlackMessageContent::new().with_text(bot_answer.to_string()),
         ))
     }
 
