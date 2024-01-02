@@ -1,3 +1,4 @@
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
@@ -6,8 +7,14 @@ use crate::mac::MacAddress;
 
 type SlackUserId = String;
 
+#[derive(Deserialize)]
+pub struct Device {
+    pub mac: MacAddress,
+    pub tcp_check_addr: Option<String>,
+}
+
 pub struct Db {
-    devices_by_user: HashMap<SlackUserId, MacAddress>,
+    devices_by_user: HashMap<SlackUserId, Device>,
 }
 
 pub type SharedDb = std::sync::Arc<Db>;
@@ -60,7 +67,7 @@ impl Db {
         Ok(Arc::new(Self::try_new(path)?))
     }
 
-    pub fn get_mac_by_slack_user_id(&self, slack_user_id: &SlackUserId) -> Option<&MacAddress> {
+    pub fn get_device_by_slack_user_id(&self, slack_user_id: &SlackUserId) -> Option<&Device> {
         self.devices_by_user.get(slack_user_id)
     }
 }

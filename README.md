@@ -44,6 +44,9 @@ Database must contain records with the following format : `<slack_user_id>: <mac
 Example :
 
 ```
-U123456: 01:02:03:04:05:06
-U654321: 06:05:04:03:02:01
+U123456:
+    mac: 01:02:03:04:05:06
+U654321:
+    mac: 06:05:04:03:02:01
+    tcp_check_addr: 10.0.0.1:22
 ```

@@ -1,8 +1,13 @@
+use slack_morphism::prelude::*;
 use std::sync::Arc;
+use std::time::Duration;
+use tokio::net::TcpStream;
 
 use crate::db::SharedDb;
 use crate::wol;
-use slack_morphism::prelude::*;
+
+const RETRY_TCP_CHECK: u8 = 6;
+
 pub struct SlackBot {
     db: SharedDb,
 }
@@ -58,24 +63,64 @@ impl SlackBot {
 
     async fn command_events(
         event: SlackCommandEvent,
-        _client: Arc<SlackHyperClient>,
+        client: Arc<SlackHyperClient>,
         user_state: SlackClientEventsUserState,
     ) -> Result<SlackCommandEventResponse, Box<dyn std::error::Error + Send + Sync>> {
-        println!("{:#?}", event);
         let slack_user_id = event.user_id;
         let storage = user_state.read().await;
         let db = &storage.get_user_state::<UserState>().unwrap().db;
 
-        let bot_answer = match db.get_mac_by_slack_user_id(&slack_user_id.0) {
-            Some(mac) => {
-                if wol::send_wol(mac).await.is_ok() {
-                    format!("Magic packet sent to {mac}")
+        let device = db.get_device_by_slack_user_id(&slack_user_id.0);
+
+        let mut bot_answer = String::new();
+
+        match device {
+            Some(device) => {
+                if wol::send_wol(&device.mac).await.is_ok() {
+                    bot_answer.push_str(format!("Magic packet sent to {}", device.mac).as_str());
+
+                    if let Some(tcp_check_addr) = device.tcp_check_addr.clone() {
+                        tokio::spawn(async move {
+                            let mut retries = 0;
+                            while retries < RETRY_TCP_CHECK {
+                                // wait for computer to start
+                                tokio::time::sleep(Duration::from_secs(5)).await;
+
+                                if TcpStream::connect(&tcp_check_addr).await.is_ok() {
+                                    let _ = client
+                                        .respond_to_event(
+                                            &event.response_url,
+                                            &SlackApiPostWebhookMessageRequest::new(
+                                                SlackMessageContent::new()
+                                                    .with_text("Host is up !".to_owned()),
+                                            ),
+                                        )
+                                        .await;
+                                    break;
+                                }
+
+                                retries += 1;
+                            }
+
+                            if retries == RETRY_TCP_CHECK {
+                                let _ = client
+                                    .respond_to_event(
+                                        &event.response_url,
+                                        &SlackApiPostWebhookMessageRequest::new(
+                                            SlackMessageContent::new()
+                                                .with_text("Host is still down :'(".to_owned()),
+                                        ),
+                                    )
+                                    .await;
+                            }
+                        });
+                    }
                 } else {
-                    "Error while sending magic packet".to_string()
-                }
+                    bot_answer.push_str("Error while sending magic packet");
+                };
             }
-            None => "User not found".to_string(),
-        };
+            None => bot_answer.push_str("User not found"),
+        }
 
         Ok(SlackCommandEventResponse::new(
             SlackMessageContent::new().with_text(bot_answer),
