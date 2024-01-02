@@ -91,64 +91,69 @@ impl SlackBot {
         client: Arc<SlackHyperClient>,
         user_state: SlackClientEventsUserState,
     ) -> Result<SlackCommandEventResponse, Box<dyn std::error::Error + Send + Sync>> {
-        let slack_user_id = event.user_id;
+        let slack_user_id = event.user_id.clone();
         let storage = user_state.read().await;
         let db = &storage.get_user_state::<UserState>().unwrap().db;
 
         let device = db.get_device_by_slack_user_id(&slack_user_id.0);
 
         let bot_answer = match device {
-            Some(device) => {
-                match wol::send_wol(&device.mac).await {
-                    Ok(_) => {
-                        if let Some(tcp_check_addr) = device.tcp_check_addr.clone() {
-                            tokio::spawn(async move {
-                                let mut retries = 0;
-                                while retries < RETRY_TCP_CHECK {
-                                    // wait for computer to start
-                                    tokio::time::sleep(Duration::from_secs(5)).await;
-
-                                    if TcpStream::connect(&tcp_check_addr).await.is_ok() {
-                                        let _ = client
-                                            .respond_to_event(
-                                                &event.response_url,
-                                                &SlackApiPostWebhookMessageRequest::new(
-                                                    SlackMessageContent::new()
-                                                        .with_text(BotResponse::HostUp.to_string()),
-                                                ),
-                                            )
-                                            .await;
-                                        break;
-                                    }
-
-                                    retries += 1;
-                                }
-
-                                if retries == RETRY_TCP_CHECK {
-                                    let _ = client
-                                        .respond_to_event(
-                                            &event.response_url,
-                                            &SlackApiPostWebhookMessageRequest::new(
-                                                SlackMessageContent::new()
-                                                    .with_text(BotResponse::HostDown.to_string()),
-                                            ),
-                                        )
-                                        .await;
-                                }
-                            });
-                        }
-
-                        BotResponse::MagicPacketSent
+            Some(device) => match wol::send_wol(&device.mac).await {
+                Ok(_) => {
+                    if let Some(tcp_check_addr) = device.tcp_check_addr.clone() {
+                        SlackBot::post_wol_check(event, client, tcp_check_addr).await;
                     }
-                    Err(_) => BotResponse::MagicPacketError,
+
+                    BotResponse::MagicPacketSent
                 }
-            }
+                Err(_) => BotResponse::MagicPacketError,
+            },
             None => BotResponse::UserNotFound,
         };
 
         Ok(SlackCommandEventResponse::new(
             SlackMessageContent::new().with_text(bot_answer.to_string()),
         ))
+    }
+
+    async fn post_wol_check(
+        event: SlackCommandEvent,
+        client: Arc<SlackHyperClient>,
+        tcp_check_addr: String,
+    ) {
+        tokio::spawn(async move {
+            let mut retries = 0;
+            while retries < RETRY_TCP_CHECK {
+                // wait for computer to start
+                tokio::time::sleep(Duration::from_secs(5)).await;
+
+                if TcpStream::connect(&tcp_check_addr).await.is_ok() {
+                    let _ = client
+                        .respond_to_event(
+                            &event.response_url,
+                            &SlackApiPostWebhookMessageRequest::new(
+                                SlackMessageContent::new()
+                                    .with_text(BotResponse::HostUp.to_string()),
+                            ),
+                        )
+                        .await;
+                    break;
+                }
+
+                retries += 1;
+            }
+
+            if retries == RETRY_TCP_CHECK {
+                let _ = client
+                    .respond_to_event(
+                        &event.response_url,
+                        &SlackApiPostWebhookMessageRequest::new(
+                            SlackMessageContent::new().with_text(BotResponse::HostDown.to_string()),
+                        ),
+                    )
+                    .await;
+            }
+        });
     }
 
     pub async fn start(&self) -> Result<(), SlackBotError> {
