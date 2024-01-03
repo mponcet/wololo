@@ -91,12 +91,11 @@ impl SlackBot {
         client: Arc<SlackHyperClient>,
         user_state: SlackClientEventsUserState,
     ) -> Result<SlackCommandEventResponse, Box<dyn std::error::Error + Send + Sync>> {
-        let slack_user_id = event.user_id.clone();
+        let slack_user_id = event.user_id.to_string();
         let storage = user_state.read().await;
         let db = &storage.get_user_state::<UserState>().unwrap().db;
 
-        let device = db.get_device_by_slack_user_id(&slack_user_id.0);
-
+        let device = db.get_device_by_slack_user_id(&slack_user_id);
         let bot_answer = match device {
             Some(device) => match wol::send_wol(&device.mac).await {
                 Ok(_) => {
