@@ -5,8 +5,12 @@ mod wol;
 
 use crate::db::Db;
 
-async fn run() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
+
+    let subscriber = tracing_subscriber::FmtSubscriber::new();
+    tracing::subscriber::set_global_default(subscriber)?;
 
     if args.len() != 2 {
         println!("{} <db>", args[0]);
@@ -17,11 +21,4 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
-}
-
-#[tokio::main]
-async fn main() {
-    if let Err(e) = run().await {
-        eprintln!("{}", e);
-    }
 }

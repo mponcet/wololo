@@ -37,8 +37,8 @@ impl std::error::Error for DbError {
 impl std::fmt::Display for DbError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DbError::IoError(e) => write!(f, "Error: {}", e),
-            DbError::DeserializeError(e) => write!(f, "Error: {}", e),
+            DbError::IoError(e) => write!(f, "{}", e),
+            DbError::DeserializeError(e) => write!(f, "{}", e),
         }
     }
 }
@@ -58,9 +58,13 @@ impl From<serde_yaml::Error> for DbError {
 impl Db {
     pub fn try_new<P: AsRef<Path>>(path: P) -> Result<Self, DbError> {
         let raw_yaml = std::fs::read_to_string(path)?;
-        let devices_by_user = serde_yaml::from_str(&raw_yaml).map_err(DbError::DeserializeError)?;
-
-        Ok(Self { devices_by_user })
+        match serde_yaml::from_str(&raw_yaml) {
+            Ok(devices_by_user) => Ok(Self { devices_by_user }),
+            Err(e) => {
+                tracing::error!("failed to deserialize the database: {}", e);
+                Err(DbError::DeserializeError(e))
+            }
+        }
     }
 
     pub fn try_new_shared<P: AsRef<Path>>(path: P) -> Result<SharedDb, DbError> {

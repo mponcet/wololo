@@ -10,4 +10,6 @@ serde = { version = "1.0.190", features = ["derive"] }
 serde_yaml = "0.9.27"
 slack-morphism = { version = "1.15.1", features = ["hyper"] }
 tokio = { version = "1.33.0", features = ["full"] }
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
 wol-rs = "1.0.1"
